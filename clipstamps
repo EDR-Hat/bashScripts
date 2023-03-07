@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#this short script uses my timestamp differences script and a file of start and end timestamps to cut out clips from a large video file
+#I made it because I will be cutting a ton of clips from my recordings. after a found a script to copy the current timestamp of VLC, this was the only piece that I was missing to cut many smaller clips from longer video at a fast rate.
+#future improvement will be automatically getting the filetype for output files
+#This script first finds the differences of timestamps puts them to a file, then extracts the start times from the original file. then it interleaves by having [startime] followed by [clip length] using the paste command. then it uses xargs with echo a few times because of xargs limitation. I was not able to find a way to put xargs parameters with any precision besides "put them all here", so using echo multiple times and modifying the other output files was the workaround. I though original xargs could handle doing something like "xargs -I % -n 2 ffmpeg -ss %1 -i input.mp4 -t %2 out.mp4" but I was wrong
+
+if [ $# -eq 0 ]
+then
+	echo "Usage: clipscript [timestamp file] [video file]"
+fi
+
+cat $1 | xargs -n 2 python ~/Documents/python/timedifference.py | sed "s/^/-i $2 -t /;s/$/ -c copy/" > tmp
+awk '{print $0, FNR}' tmp > tmp3
+cat $1 | grep -oP "^[^ ]+" > tmp2
+paste -d ' ' tmp2 tmp3 | xargs -n 8 echo "-ss " | xargs -I{} echo {}.mkv | xargs -n 9 ffmpeg
+rm tmp3 tmp2 tmp
